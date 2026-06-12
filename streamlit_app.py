@@ -1,76 +1,43 @@
 import os
-import json
-import secrets
-import numpy as np
-import faiss
+import subprocess
+import sys
+import time
 import streamlit as st
-from sentence_transformers import SentenceTransformer
-from groq import Groq
 
-# Set page title and styling
-st.set_page_config(page_title="Legal Guidance Platform", page_icon="⚖️")
-st.title("⚖️ Legal Guidance AI Platform")
+st.set_page_config(page_title="Legal Guidance Platform", layout="wide")
 
-# 1) Load Knowledge Base
-PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-KB_PATH = os.path.join(PROJECT_DIR, "legal_kb.json")
-
-if not os.path.exists(KB_PATH):
-    st.error("Missing 'legal_kb.json' file in the directory.")
-    st.stop()
-
+# 1. Start your exact Flask app in the background
 @st.cache_resource
-def initialize_knowledge_base():
-    with open(KB_PATH, "r", encoding="utf-8") as f:
-        kb_data = json.load(f)
+def start_flask_backend():
+    # Looks for your original app.py file
+    flask_file = os.path.join(os.path.dirname(__file__), "app.py")
     
-    # Initialize FAISS and Embeddings
-    embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-    scenarios = [item["scenario"] for item in kb_data]
-    embeddings = embed_model.encode(scenarios, convert_to_numpy=True).astype("float32")
-    
-    index = faiss.IndexFlatL2(embeddings.shape[1])
-    index.add(embeddings)
-    return kb_data, embed_model, index
+    # Run the Flask app on port 8501 (or another free port) via a background process
+    process = subprocess.Popen(
+        [sys.executable, flask_file],
+        env=dict(os.environ, FLASK_RUN_PORT="8080"),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    # Give the heavy FAISS database and model 5 seconds to boot up
+    time.sleep(5)
+    return process
 
-kb, embed_model, index = initialize_knowledge_base()
+# Trigger the background startup sequence
+backend_process = start_flask_backend()
 
-# 2) Setup Groq Client
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-if not GROQ_API_KEY:
-    st.warning("Please configure your GROQ_API_KEY secret in the settings.")
-    st.stop()
-
-client = Groq(api_key=GROQ_API_KEY)
-
-# 3) Main UI Experience
-user_query = st.text_area("Describe your legal legal situation/dispute in detail:", 
-                          placeholder="e.g., Someone withdrew money from my bank account via a fake UPI link...")
-
-if st.button("Analyze Assessment Case"):
-    if user_query.strip():
-        with st.spinner("Processing context matching and generating AI legal profile..."):
-            # Compute similarity match
-            query_vector = embed_model.encode([user_query], convert_to_numpy=True).astype("float32")
-            D, I = index.search(query_vector, 1)
-            matched_scenario = kb[I[0][0]]
-            
-            # Request LLM Guidance Evaluation
-            prompt = f"""
-            You are an expert legal assistant. Analyze this user issue: "{user_query}"
-            The closely matching legal template is: {json.dumps(matched_scenario)}
-            Provide immediate actionable next steps, applicable laws, and relevant handling authorities.
-            """
-            
-            completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            
-            ai_response = completion.choices[0].message.content
-            
-            # Render evaluation findings
-            st.subheader(f"Matched Category: {matched_scenario['title']}")
-            st.markdown(ai_response)
-    else:
-        st.error("Please insert a valid case scenario explanation before submitting.")
+# 2. Display your EXACT Flask UI inside Streamlit using an Iframe
+st.markdown(
+    """
+    <style>
+        /* Remove all default Streamlit padding, headers, and footers */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        .block-container {padding: 0px !important;}
+        iframe {border: none; width: 100%; height: 100vh;}
+    </style>
+    <iframe src="http://127.0.0.1:8080"></iframe>
+    """,
+    unsafe_allow_html=True
+)
