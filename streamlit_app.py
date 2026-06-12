@@ -4,6 +4,7 @@ import sys
 import time
 import socket
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Legal Guidance Platform", layout="wide")
 
@@ -41,23 +42,19 @@ if not is_port_open(8080):
     time.sleep(1)
     st.rerun()
 
-# 3. Render your EXACT Flask UI smoothly without using hardcoded localhost IPs
-# Streamlit provides the public URL via its native query params/headers
+# 3. Inject CSS to hide default Streamlit headers/padding to match your original layout
 st.markdown(
     """
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
         header {visibility: hidden;}
-        .block-container {padding: 0px !important;}
-        iframe {border: none; width: 100%; height: 100vh;}
+        .block-container {padding: 0px !important; margin: 0px !important;}
+        .stAppViewMain {padding: 0px !important;}
     </style>
-    <iframe src="/"" + os.environ.get("FLASK_RUN_PORT", "8080") + """"></iframe>
-    <iframe src="http://localhost:8080"></iframe>
     """,
     unsafe_allow_html=True
 )
 
-# Alternative production proxy connector fallback 
-# If the native embedding fails to clear corporate firewalls, we embed via relative proxy pathway:
-st.components.v1.iframe("http://127.0.0.1:8080", height=900, scrolling=True)
+# 4. Safely render your Flask app inside the safe Streamlit Component iframe
+components.iframe("http://127.0.0.1:8080", height=900, scrolling=True)
