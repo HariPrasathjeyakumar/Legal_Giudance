@@ -2,6 +2,6 @@ streamlit
 requests
 groq
 numpy==1.26.4
-faiss-cpu==1.8.0
+faiss-cpu
 sentence-transformers==2.5.1
 reportlab==4.1.0
