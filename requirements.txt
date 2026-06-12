@@ -1,7 +1,10 @@
-streamlit
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+faiss-cpu
+sentence-transformers==2.5.1
+flask
+gunicorn
 requests
 groq
 numpy==1.26.4
-faiss-cpu
-sentence-transformers==2.5.1
 reportlab==4.1.0
