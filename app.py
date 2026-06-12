@@ -292,5 +292,5 @@ def save_session():
 
 # ── 7) PRODUCTION LAUNCH ENVIRONMENT ────────────────────────────────────
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 7860))
+    port = int(os.environ.get("FLASK_RUN_PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
